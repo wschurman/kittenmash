@@ -1,4 +1,3 @@
-// Store global settings that can be read by both python and javascript
 {
   "hello": 3
 }
