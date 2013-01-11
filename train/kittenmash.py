@@ -7,6 +7,7 @@ Trains the kittens that walk on the keyboard.
 
 from config import config
 from recorder import Recorder
+from trainer import Trainer
 
 import atexit, os, time, sys, json
 from threading import Thread, Lock
@@ -25,9 +26,14 @@ def train(*args):
   """
   trains the model based on files in the input folder
   """
-  if options.verbose:
-    for arg in args:
-      print arg
+  input_folder = args[0][0]
+  if not input_folder:
+    print "Must specify a directory of models"
+    return
+
+  trainer = Trainer(input_folder, options.output)
+  trainer.train()
+
 
 def convert(*args):
   """

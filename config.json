@@ -1,3 +1,5 @@
 {
+  "type_not_kitten": 0,
+  "type_kitten": 1,
   "min_key_cluster_separation_threshold_sec": 1
 }

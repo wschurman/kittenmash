@@ -47,6 +47,7 @@ class Recorder:
   def __init__(self, filename):
     self.filename = filename
     self.root = None
+    self.type = None
     self.raw_sequence = deque()
 
   def key(self, event):
@@ -56,8 +57,19 @@ class Recorder:
     self.raw_sequence.append([time.time(), event.char])
 
   def start(self):
+    val = raw_input("Is this a cat? (enter \"y\" for cat): ")
+    if val.lower()[0] == "y":
+      self.type = config("type_kitten")
+    else:
+      self.type = config("type_not_kitten")
+
     self.root = tk.Tk()
-    print "Please focus the GUI and place a cat on the keyboard (esc to exit):"
+
+    if self.type == config("type_kitten"):
+      print "Please focus GUI and place a cat on the keyboard (esc to exit):"
+    else:
+      print "Please focus GUI and type something (esc to exit):"
+
     self.root.bind_all('<Key>', self.key)
     self.root.mainloop()
 
@@ -65,6 +77,7 @@ class Recorder:
     clusters = c.cluster()
 
     output = open(self.filename, 'wb')
+    pickle.dump(self.type, output, -1)
     pickle.dump(clusters, output, -1)
     output.close()
 
