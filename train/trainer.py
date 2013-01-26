@@ -12,13 +12,10 @@ import os, pickle
 from collections import defaultdict
 from config import config
 
-SIMILARITY_THRESH = 10 # huh
+SIMILARITY_THRESH = .8 # huh
 
-def get_cluster_hash(cluster):
-  """
-  cluster is a list of letters, need to do comparison
-  """
-  return 1
+SPATIAL_MULTIPLIER = .8
+LENGTH_MULTIPLIER = .2
 
 class TreeNode():
   """
@@ -27,26 +24,65 @@ class TreeNode():
   """
   def __init__(self, cluster, val):
     self.clusters = [cluster] # clusters with the same hash
-    self.children = {} # child nodes, i.e. next in sequences
+    self.children = [] # child nodes, i.e. next in sequences
     self.num_true = 1 if val else 0 # 1 if cluster is kitty
+
 
   def __str__(self):
     str_list = []
     for k in self.children:
-      str_list.append("[%s, %s]" % (k, str(self.children[k])))
+      str_list.append("[%s]" % k)
 
     return "[%s, %s]" % (self.clusters, ''.join(str_list)) # make print better
 
+
+  def get_cluster_similarity(self, cluster):
+    """
+    is cluster similar enough to known_clusters?
+    """
+    # note a massive amount of information loss by converting to sets:
+    # lose all key repeat data, should probably compare number of repeated elems
+
+    # short_circuit if no clusters
+    if not len(self.clusters):
+      return 1
+
+    num_similar = [] # init to max
+    num_elems = 0
+
+    for k in self.clusters:
+      num_similar.append(length(set(cluster) & set(k)))
+      num_elems += len(k)
+
+    # gets keyboard position similarity
+    key_similarity = sum(num_similar) / len(num_similar)
+    key_similarity_normalized = key_similarity / len(cluster)
+
+    # need to take into account the number of elements
+    avg_num_elem_in_known = num_elems / len(self.clusters)
+    num_similarity = abs(len(cluster) - avg_num_elem_in_known)
+    num_similarity_normalized = num_similarity / len(cluster)
+
+    # this probably doesn't work
+    return (key_similarity_normalized * SPATIAL_MULTIPLIER +
+            num_similarity_normalized * LENGTH_MULTIPLIER)
+
   # tree methods
   def addChildCluster(self, c_cluster, c_val):
-    c_hash = get_cluster_hash(c_cluster)
+    child_c_best_sim = 0
+    child_c_best = None
+    for c in self.children:
+      c_sim = c.get_cluster_similarity(c_cluster)
+      if c_sim > child_c_best_sim:
+        child_c_best_sim = c_sim
+        child_c_best = c
 
-    if c_hash in self.children:
-      self.children[c_hash].addCluster(c_cluster, c_val)
-    else:
-      self.children[c_hash] = TreeNode(c_cluster, c_val)
+    if child_c_best_sim > SIMILARITY_THRESH: # add cluster to existing child
+      child_c_best.addCluster(c_cluster, c_val)
+    else: #add new child
+      self.children.append(TreeNode(c_cluster, c_val))
 
-    return self.children[c_hash]
+    return child_c_best if child_c_best else self.children[-1]
 
   def numClustersInNode(self):
     return len(self.clusters)
