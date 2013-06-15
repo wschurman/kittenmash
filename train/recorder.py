@@ -1,6 +1,7 @@
 # may require Scipy: http://fonnesbeck.github.com/ScipySuperpack/ for Mac 10.8
 
-import os, time, sys, json, pickle
+import time
+import pickle
 from config import config
 from collections import deque
 import Tkinter as tk
@@ -9,77 +10,77 @@ from scipy.cluster.vq import kmeans, vq, whiten
 
 MAX_SEP_THRESH = config("min_key_cluster_separation_threshold_sec")
 
+
 class Clusterer:
-  """
-  Clusters the raw keystroke records by max separation threshold clustering
-  """
-  def __init__(self, raw):
-    self.raw_sequence = raw
-    self.clustered_sequence = [[]]
+    """
+    Clusters the raw keystroke records by max separation threshold clustering
+    """
+    def __init__(self, raw):
+        self.raw_sequence = raw
+        self.clustered_sequence = [[]]
 
-  def strip_times(self, c):
-    stripped_clusters = []
+    def strip_times(self, c):
+        stripped_clusters = []
 
-    for cluster in c:
-      stripped_clusters.append([])
-      for elem in cluster:
-        stripped_clusters[-1].append(elem[1])
-    return stripped_clusters
+        for cluster in c:
+            stripped_clusters.append([])
+            for elem in cluster:
+                stripped_clusters[-1].append(elem[1])
+        return stripped_clusters
 
-  def cluster(self):
+    def cluster(self):
 
-    cur_t = self.raw_sequence[0][0] # init cur_t to first recorded time
+        cur_t = self.raw_sequence[0][0]  # init cur_t to first recorded time
 
-    for elem in self.raw_sequence:
-      if elem[0] - cur_t < MAX_SEP_THRESH:
-        self.clustered_sequence[-1].append(elem)
-      else:
-        self.clustered_sequence.append([elem])
-      cur_t = elem[0]
+        for elem in self.raw_sequence:
+            if elem[0] - cur_t < MAX_SEP_THRESH:
+                self.clustered_sequence[-1].append(elem)
+            else:
+                self.clustered_sequence.append([elem])
+            cur_t = elem[0]
 
-    return self.strip_times(self.clustered_sequence)
+        return self.strip_times(self.clustered_sequence)
 
 
 class Recorder:
-  """
-  Uses Tkinter window to listen to and record keystrokes
-  """
-  def __init__(self, filename):
-    self.filename = filename
-    self.root = None
-    self.type = None
-    self.raw_sequence = deque()
+    """
+    Uses Tkinter window to listen to and record keystrokes
+    """
+    def __init__(self, filename):
+        self.filename = filename
+        self.root = None
+        self.type = None
+        self.raw_sequence = deque()
 
-  def key(self, event):
-    if event.keysym == 'Escape':
-      self.root.destroy()
-      return
-    self.raw_sequence.append([time.time(), event.char])
+    def key(self, event):
+        if event.keysym == 'Escape':
+            self.root.destroy()
+            return
+        self.raw_sequence.append([time.time(), event.char])
 
-  def start(self):
-    val = raw_input("Is this a cat? (enter \"y\" for cat): ")
-    if val.lower()[0] == "y":
-      self.type = config("type_kitten")
-    else:
-      self.type = config("type_not_kitten")
+    def start(self):
+        val = raw_input("Is this a cat? (enter \"y\" for cat): ")
+        if val.lower()[0] == "y":
+            self.type = config("type_kitten")
+        else:
+            self.type = config("type_not_kitten")
 
-    self.root = tk.Tk()
+        self.root = tk.Tk()
 
-    if self.type == config("type_kitten"):
-      print "Please focus GUI and place a cat on the keyboard (esc to exit):"
-    else:
-      print "Please focus GUI and type something (esc to exit):"
+        if self.type == config("type_kitten"):
+            print "Please focus GUI and place a cat on the keyboard (esc to exit):"
+        else:
+            print "Please focus GUI and type something (esc to exit):"
 
-    self.root.bind_all('<Key>', self.key)
-    self.root.mainloop()
+        self.root.bind_all('<Key>', self.key)
+        self.root.mainloop()
 
-    c = Clusterer(self.raw_sequence)
-    clusters = c.cluster()
+        c = Clusterer(self.raw_sequence)
+        clusters = c.cluster()
 
-    output = open(self.filename, 'wb')
-    pickle.dump(self.type, output, -1)
-    pickle.dump(clusters, output, -1)
-    output.close()
+        output = open(self.filename, 'wb')
+        pickle.dump(self.type, output, -1)
+        pickle.dump(clusters, output, -1)
+        output.close()
 
-    return clusters
-
+        return clusters
